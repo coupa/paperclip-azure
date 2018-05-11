@@ -1,4 +1,4 @@
-require 'azure/storage'
+require 'azure/storage/blob'
 require 'paperclip/storage/azure/environment'
 
 module Paperclip
@@ -84,7 +84,7 @@ module Paperclip
       def expiring_url(time = 3600, style_name = default_style)
         if path(style_name)
           uri = URI azure_uri(style_name)
-          generator = ::Azure::Storage::Core::Auth::SharedAccessSignature.new azure_account_name,
+          generator = ::Azure::Storage::Common::Core::Auth::SharedAccessSignature.new azure_account_name,
                                                                               azure_credentials[:storage_access_key]
 
           generator.signed_uri uri, false, service:      'b',
@@ -138,7 +138,7 @@ module Paperclip
           config[opt] = azure_credentials[opt] if azure_credentials[opt]
         end
 
-        @azure_storage_client ||= ::Azure::Storage::Client.create config
+        @azure_storage_client ||= ::Azure::Storage::Common::Client.create config
       end
 
       def obtain_azure_instance_for(options)
@@ -146,7 +146,7 @@ module Paperclip
         return instances[options] if instances[options]
 
         service = ::Azure::Storage::Blob::BlobService.new(client: azure_storage_client)
-        service.with_filter ::Azure::Storage::Core::Filter::ExponentialRetryPolicyFilter.new
+        service.with_filter ::Azure::Storage::Common::Core::Filter::ExponentialRetryPolicyFilter.new
 
         instances[options] = service
       end
@@ -220,11 +220,13 @@ module Paperclip
       end
 
       def save_blob(container_name, storage_path, file, write_options)
-        if file.size < 64.megabytes
+        # Maximum size for a block blob created via Put Blob is 256 MB for version 2016-05-31. 'azure-storage-blob' uses API version '2016-05-31'.
+        # Kept a buffer of 6 MB and added the max size as 250 MB
+        if file.size < 250.megabytes
           azure_interface.create_block_blob container_name, storage_path, file.read, write_options
         else
           blocks = []; count = 0
-          while data = file.read(4.megabytes)
+          while data = file.read(10.megabytes)
             block_id = "block_#{(count += 1).to_s.rjust(5, '0')}"
 
             azure_interface.put_blob_block container_name, storage_path, block_id, data
