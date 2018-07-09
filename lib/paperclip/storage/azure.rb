@@ -148,7 +148,8 @@ module Paperclip
         service = ::Azure::Storage::Blob::BlobService.new(client: azure_storage_client)
         # LinearRetryPolicy throws some argument error. Have raised an issue in azure-storage-ruby repo - https://github.com/Azure/azure-storage-ruby/issues/121
         # Till then using exponential retry filter with smaller retry values
-        service.with_filter ::Azure::Storage::Common::Core::Filter::ExponentialRetryPolicyFilter.new(2, 10, 20)
+        # Commenting out the retry filter as we see issues with ExponentialRetryPolicyFilter as well
+        # service.with_filter ::Azure::Storage::Common::Core::Filter::ExponentialRetryPolicyFilter.new(2, 10, 20)
 
         instances[options] = service
       end
