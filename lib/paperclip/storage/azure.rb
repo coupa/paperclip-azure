@@ -146,9 +146,18 @@ module Paperclip
         return instances[options] if instances[options]
 
         service = ::Azure::Storage::Blob::BlobService.new(client: azure_storage_client)
-        # LinearRetryPolicy throws some argument error. Have raised an issue in azure-storage-ruby repo - https://github.com/Azure/azure-storage-ruby/issues/121
-        # Till then using exponential retry filter with smaller retry values
-        service.with_filter ::Azure::Storage::Common::Core::Filter::ExponentialRetryPolicyFilter.new(2, 10, 20)
+        # 
+        # Commenting out the ExponentialRetryPolicyFilter for azure blob service as we experience some slowness in accessing the coupa enterprise with azure attachments.
+        # 
+        # Slowness explanation: In most of the places, paperclip checks if the attachment exists(def exists?) in cloud before doing some of the operations.
+        # Azure interface throws 404 when blob does not exist. This is being retried exponentially as we have enabled retry policy. Once the retry is done, this 404 is rescued and
+        # then returned false when we call exists? method on attachment. The slowness in the app is because of the retry being done exponentially.
+        # 
+        # Why ExponentialRetryPolicyFilter and not LinearRetryFiler?
+        # Ans: We see issues with LinearRetryPolicy for which the issue is raised in azure-storage-ruby repo - https://github.com/Azure/azure-storage-ruby/issues/121 
+        # and hence we enabled exponential retry filter with smaller retry values. Even then, we see some slowness!
+        #
+        # service.with_filter ::Azure::Storage::Common::Core::Filter::ExponentialRetryPolicyFilter.new(2, 10, 20)
 
         instances[options] = service
       end
