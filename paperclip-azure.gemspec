@@ -3,7 +3,7 @@
 
 Gem::Specification.new do |s|
   s.name = "paperclip-azure".freeze
-  s.version = "1.0.3.20170815092451"
+  s.version = "1.2.0.20180816152200"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
