@@ -119,16 +119,25 @@ module Paperclip
         @container or raise ArgumentError, "missing required :container option"
       end
 
-      def azure_interface
-        @azure_interface ||= begin
-          config = {}
-
-          [:storage_account_name, :storage_access_key, :container].each do |opt|
-            config[opt] = azure_credentials[opt] if azure_credentials[opt]
-          end
-
+      def azure_interface_without_retry
+        @azure_interface_without_retry ||= begin
+          config = set_access_config({})
           obtain_azure_instance_for(config.merge(@azure_options))
         end
+      end
+
+      def azure_interface
+        @azure_interface ||= begin
+          config = set_access_config(with_retry: true)
+          obtain_azure_instance_for(config.merge(@azure_options))
+        end
+      end
+
+      def set_access_config(config)
+        [:storage_account_name, :storage_access_key, :container].each do |opt|
+          config[opt] = azure_credentials[opt] if azure_credentials[opt]
+        end 
+        config
       end
 
       def azure_storage_client
@@ -148,7 +157,7 @@ module Paperclip
         service = ::Azure::Storage::Blob::BlobService.new(client: azure_storage_client)
         # LinearRetryPolicy throws some argument error. Have raised an issue in azure-storage-ruby repo - https://github.com/Azure/azure-storage-ruby/issues/121
         # Till then using exponential retry filter with smaller retry values
-        service.with_filter ::Azure::Storage::Common::Core::Filter::ExponentialRetryPolicyFilter.new(2, 10, 20)
+        service.with_filter ::Azure::Storage::Common::Core::Filter::ExponentialRetryPolicyFilter.new(2, 10, 20) if options[:with_retry] 
 
         instances[options] = service
       end
@@ -165,8 +174,9 @@ module Paperclip
         @azure_container ||= azure_interface.get_container_properties container_name
       end
 
-      def azure_object(style_name = default_style)
-        azure_interface.get_blob_properties container_name, path(style_name).sub(%r{\A/},'')
+      def azure_object(style_name = default_style, without_retry = false)
+        interface = without_retry ? azure_interface_without_retry : azure_interface
+        interface.get_blob_properties container_name, path(style_name).sub(%r{\A/},'')
       end
 
       def parse_credentials(creds)
@@ -178,7 +188,7 @@ module Paperclip
 
       def exists?(style = default_style)
         if original_filename
-          !azure_object(style).nil?
+          !azure_object(style, true).nil?
         else
           false
         end
