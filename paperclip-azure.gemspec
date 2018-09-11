@@ -1,9 +1,10 @@
 # -*- encoding: utf-8 -*-
-# stub: paperclip-azure 1.0.3.20170815092451 ruby lib
+$LOAD_PATH.push File.expand_path("../lib", __FILE__)
+require 'paperclip/azure'
 
 Gem::Specification.new do |s|
   s.name = "paperclip-azure".freeze
-  s.version = "1.2.0.20180816152200"
+  s.version = Paperclip::Azure::VERSION
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0".freeze) if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib".freeze]
