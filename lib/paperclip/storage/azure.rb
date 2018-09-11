@@ -134,16 +134,16 @@ module Paperclip
       end
 
       def set_access_config(config)
-        [:storage_account_name, :storage_access_key, :container].each do |opt|
+        [:storage_account_name, :storage_access_key, :storage_sas_token, :container].each do |opt|
           config[opt] = azure_credentials[opt] if azure_credentials[opt]
-        end 
+        end
         config
       end
 
       def azure_storage_client
         config = {}
 
-        [:storage_account_name, :storage_access_key].each do |opt|
+        [:storage_account_name, :storage_access_key, :storage_sas_token].each do |opt|
           config[opt] = azure_credentials[opt] if azure_credentials[opt]
         end
 
@@ -211,10 +211,9 @@ module Paperclip
               content_type: file.content_type,
             }
 
-            if azure_container
-              save_blob container_name, path(style).sub(%r{\A/},''), file, write_options
-            end
+            save_blob container_name, path(style).sub(%r{\A/},''), file, write_options
           rescue ::Azure::Core::Http::HTTPError => e
+            # TODO: Determine how to handle failures when the container doesn't exist and an access key or account SAS token is used
             if e.status_code == 404
               create_container
               retry

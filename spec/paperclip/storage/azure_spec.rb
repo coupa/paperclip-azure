@@ -2,6 +2,7 @@ require 'spec_helper'
 require "base64"
 
 describe Paperclip::Storage::Azure do
+  let(:config) { { storage_account_name: 'test', storage_sas_token: 'testing' } }
   let(:storage_access_key) { 'kiaY4+GkLMVxnfOK2X+eCJOE06J8QtHC6XNuXVwt8Pp4kMezYaa7cNjtYnZr4/b732RKdz5pZwl8RN9yb8gBCg==' }
 
   describe "#parse_credentials" do
@@ -37,6 +38,32 @@ describe Paperclip::Storage::Azure do
       end
     end
 
+  end
+
+  describe "#set_access_config" do
+    let(:dummy) { Dummy.new }
+
+    subject { dummy.avatar.set_access_config(config) }
+
+    it "accepts storage SAS tokens" do
+      expect(subject).to include(:storage_sas_token)
+      expect(subject[:storage_sas_token]).to include('testing')
+    end
+  end
+
+  describe "#azure_storage_client" do
+    before do
+      rebuild_model storage: :azure,
+                    azure_credentials: config
+      @dummy = Dummy.new
+    end
+
+    subject { @dummy.avatar.azure_storage_client.options }
+
+    it "accepts storage SAS tokens" do
+      expect(subject).to include(:storage_sas_token)
+      expect(subject[:storage_sas_token]).to include('testing')
+    end
   end
 
   describe '#container_name' do
