@@ -265,7 +265,7 @@ module Paperclip
       def copy_to_local_file(style, local_dest_path)
         log("copying #{path(style)} to local file #{local_dest_path}")
 
-        _, content = azure_interface.get_blob(container_name, path(style).sub(%r{\A/},''))
+        _, content = azure_interface_without_retry.get_blob(container_name, path(style).sub(%r{\A/},''))
 
         ::File.open(local_dest_path, 'wb') do |local_file|
           local_file.write(content)
